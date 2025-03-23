@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meme Generator</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+        body.dark {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e2e8f0;
+        }
+        body.light {
+            background: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%);
+            color: #1a1a2e;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin: 20px 0;
+            text-align: center;
+            background: linear-gradient(45deg, #00ddeb, #6b48ff);
+            -webkit-background-clip: text;
+            color: transparent;
+            font-weight: 700;
+        }
+        h2 {
+            font-size: 1.1rem;
+            margin: 0 0 10px;
+            color: #00ddeb;
+            font-weight: 600;
+        }
+        body.light h2 {
+            color: #6b48ff;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-grow: 1;
+            gap: 20px;
+            position: relative;
+        }
+        .panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.2s ease, background 0.3s ease, border 0.3s ease;
+        }
+        body.light .panel {
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        .panel:hover {
+            transform: translateY(-3px);
+        }
+        #controls {
+            width: 280px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+        }
+        #output {
+            width: 700px;
+            max-width: 100%;
+        }
+        #meme-zone {
+            width: 100%;
+            text-align: center;
+        }
+        input, select {
+            padding: 8px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 221, 235, 0.3);
+            background: rgba(30, 20, 60, 0.7);
+            color: #e2e8f0;
+            font-size: 0.9rem;
+            width: 100%;
+            box-sizing: border-box;
+            margin: 5px 0;
+            transition: background 0.3s ease, border 0.3s ease;
+        }
+        body.light input, body.light select {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            color: #1a1a2e;
+        }
+        input:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        button, .icon-btn {
+            padding: 8px;
+            font-size: 0.9rem;
+            background: linear-gradient(45deg, #6b48ff, #00ddeb);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 5px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            position: relative;
+        }
+        #generate-btn, #placeholder-generate-btn {
+            padding: 10px;
+            background: linear-gradient(45deg, #ff4081, #00ddeb);
+        }
+        #generate-btn:hover:not(:disabled), #placeholder-generate-btn:hover:not(:disabled) {
+            background: linear-gradient(45deg, #e63946, #00b8c4);
+            box-shadow: 0 0 15px rgba(255, 64, 129, 0.5);
+        }
+        button:hover:not(:disabled), .icon-btn:hover:not(:disabled) {
+            background: linear-gradient(45deg, #5a3de6, #00b8c4);
+            box-shadow: 0 0 15px rgba(0, 221, 235, 0.5);
+        }
+        button:disabled, .icon-btn:disabled {
+            background: #444;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        body.light button:not(:disabled), body.light .icon-btn:not(:disabled) {
+            background: linear-gradient(45deg, #00b8c4, #6b48ff);
+            color: #fff;
+        }
+        body.light #generate-btn:not(:disabled), body.light #placeholder-generate-btn:not(:disabled) {
+            background: linear-gradient(45deg, #00b8c4, #ff4081);
+        }
+        body.light button:hover:not(:disabled), body.light .icon-btn:hover:not(:disabled) {
+            background: linear-gradient(45deg, #009ba1, #5a3de6);
+        }
+        body.light #generate-btn:hover:not(:disabled), body.light #placeholder-generate-btn:hover:not(:disabled) {
+            background: linear-gradient(45deg, #009ba1, #e63946);
+        }
+        .icon-btn[title]:hover:after {
+            content: attr(title);
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+        #prompt-options {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        #prompt-options button {
+            background: rgba(107, 72, 255, 0.2);
+            padding: 6px;
+            justify-content: flex-start;
+        }
+        body.light #prompt-options button {
+            background: rgba(107, 72, 255, 0.1);
+        }
+        #prompt-options button:hover {
+            background: rgba(107, 72, 255, 0.4);
+        }
+        #loading {
+            display: none;
+            font-size: 0.9rem;
+            color: #00ddeb;
+            text-align: center;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            max-width: 512px;
+            height: 512px;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+        #loading.hidden {
+            opacity: 0;
+        }
+        body.light #loading {
+            color: #6b48ff;
+        }
+        #progress-bar {
+            width: 300px;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        #progress-fill {
+            width: 0;
+            height: 100%;
+            background: #00ddeb;
+            transition: width 0.1s linear;
+        }
+        body.light #progress-fill {
+            background: #6b48ff;
+        }
+        #options-gallery {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            justify-items: center;
+            margin: 10px 0;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        #options-gallery.visible {
+            opacity: 1;
+        }
+        #options-gallery img {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 0 5px rgba(107, 72, 255, 0.3);
+            cursor: pointer;
+            transition: opacity 0.2s ease;
+            opacity: 0.7;
+        }
+        body.light #options-gallery img {
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+        }
+        #options-gallery img:hover {
+            opacity: 1;
+        }
+        #options-gallery img.selected {
+            opacity: 1;
+            border: 3px solid #ff4081;
+            box-shadow: 0 0 10px rgba(255, 64, 129, 0.7);
+        }
+        body.light #options-gallery img.selected {
+            border: 3px solid #6b48ff;
+            box-shadow: 0 0 10px rgba(107, 72, 255, 0.7);
+        }
+        #options-gallery p {
+            grid-column: 1 / -1;
+            font-size: 0.9rem;
+            margin: 5px 0;
+            color: #ff6384;
+        }
+        body.light #options-gallery p {
+            color: #e63946;
+        }
+        #meme-container {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+            max-width: 512px;
+            height: 512px;
+            overflow: hidden;
+            transition: box-shadow 0.5s ease;
+        }
+        #meme-container.updated {
+            box-shadow: 0 0 20px rgba(0, 221, 235, 0.5);
+        }
+        body.light #meme-container.updated {
+            box-shadow: 0 0 20px rgba(107, 72, 255, 0.5);
+        }
+        #meme-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            transition: opacity 0.2s ease;
+            opacity: 1;
+        }
+        #meme-image.hidden {
+            opacity: 0;
+        }
+        .meme-text {
+            position: absolute;
+            width: 100%;
+            color: #fff;
+            font-size: 24px;
+            font-weight: 700;
+            text-transform: uppercase;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            text-align: center;
+            pointer-events: none;
+            transition: opacity 0.3s ease-in-out;
+        }
+        body.light .meme-text {
+            color: #1a1a2e;
+            text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.8);
+        }
+        #top-text {
+            top: 10px;
+            left: 0;
+        }
+        #bottom-text {
+            bottom: 10px;
+            left: 0;
+        }
+        #customize-controls {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            margin: 5px 0;
+        }
+        #prompt-generate {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        #theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #e2e8f0;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+        body.light #theme-toggle {
+            color: #1a1a2e;
+        }
+        .loading-spinner {
+            display: none;
+            font-size: 0.9rem;
+            margin-left: 5px;
+            animation: spin 1s linear infinite;
+        }
+        button.loading .loading-spinner {
+            display: inline-block;
+        }
+        #loading-icons {
+            display: flex;
+            gap: 10px;
+        }
+        #loading-icons span {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            line-height: 20px;
+            text-align: center;
+            animation: flip 0.5s infinite alternate;
+        }
+        #loading-icons span:nth-child(2) { animation-delay: 0.1s; }
+        #loading-icons span:nth-child(3) { animation-delay: 0.2s; }
+        #placeholder {
+            display: none;
+            font-size: 1rem;
+            color: #00ddeb;
+            text-align: center;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            width: 100%;
+            max-width: 512px;
+            height: 512px;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+        #placeholder.hidden {
+            opacity: 0;
+        }
+        body.light #placeholder {
+            color: #6b48ff;
+        }
+        #placeholder-icon {
+            font-size: 2rem;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes flip {
+            0% { transform: scaleY(1); }
+            100% { transform: scaleY(-1); }
+        }
+        @media (max-width: 900px) {
+            .container {
+                flex-direction: column;
+                padding: 10px;
+            }
+            #controls, #output {
+                width: 100%;
+                max-width: 350px;
+            }
+            #options-gallery {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            #meme-container, #loading, #placeholder {
+                max-width: 300px;
+                height: 300px;
+            }
+            #progress-bar {
+                width: 200px;
+            }
+            #theme-toggle {
+                top: 10px;
+                right: 10px;
+            }
+        }
+    </style>
+</head>
+<body class="dark">
+    <h1>Meme Generator</h1>
+    <button id="theme-toggle" aria-label="Toggle theme"><i class="fas fa-moon"></i></button>
+    <div class="container">
+        <div id="controls">
+            <section id="prompts" class="panel">
+                <h2>Pick a Vibe</h2>
+                <select id="theme-selector">
+                    <option value="default">Random</option>
+                    <option value="dark-humor">Dark Humor</option>
+                    <option value="cute">Cute</option>
+                </select>
+                <div id="prompt-options">
+                    <!-- Dynamically populated -->
+                </div>
+                <button id="regen-presets"><i class="fas fa-sync-alt"></i> Refresh <i class="fas fa-spinner loading-spinner"></i></button>
+            </section>
+        </div>
+
+        <div id="output">
+            <section id="meme-zone" class="panel">
+                <h2>Your Meme</h2>
+                <div id="prompt-generate">
+                    <input type="text" id="custom-prompt" placeholder="Your own idea">
+                    <button id="generate-btn" class="icon-btn" title="Generate Meme"><i class="fas fa-magic"></i></button>
+                </div>
+                <div id="options-gallery">
+                    <p>Pick an idea to start!</p>
+                </div>
+                <div id="meme-container">
+                    <div id="loading">
+                        <span id="loading-text">Summoning meme magic...</span>
+                        <div id="progress-bar"><div id="progress-fill"></div></div>
+                        <span id="loading-icons">
+                            <span><i class="fas fa-star"></i></span>
+                            <span><i class="fas fa-bolt"></i></span>
+                            <span><i class="fas fa-cog"></i></span>
+                        </span>
+                    </div>
+                    <div id="placeholder">
+                        <span id="placeholder-text">Nothing here, loser!</span>
+                        <span id="placeholder-icon"><i class="fas fa-skull"></i></span>
+                        <button id="placeholder-generate-btn" class="icon-btn" title="Generate Meme"><i class="fas fa-magic"></i> Generate</button>
+                    </div>
+                    <img id="meme-image" src="" alt="Meme" class="hidden">
+                    <div id="top-text" class="meme-text"></div>
+                    <div id="bottom-text" class="meme-text"></div>
+                </div>
+                <input type="text" id="top-input" placeholder="TOP TEXT" oninput="updateText()">
+                <input type="text" id="bottom-input" placeholder="BOTTOM TEXT" oninput="updateText()">
+                <div id="customize-controls">
+                    <button class="icon-btn" id="regen-captions-btn" disabled title="Regenerate Captions"><i class="fas fa-redo"></i></button>
+                    <button class="icon-btn" id="clear-btn" title="Clear"><i class="fas fa-trash"></i></button>
+                    <button class="icon-btn" id="download-btn" disabled title="Download"><i class="fas fa-download"></i></button>
+                    <button class="icon-btn" id="share-btn" disabled title="Share"><i class="fas fa-share-alt"></i></button>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        const HF_API_KEY = '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';
+        const GEMINI_API_KEY = 'AIzaSyDxU3tzbn8bzhO4BDZjRbBibUhICigLL9U';
+        const loadingMessages = [
+            "Summoning meme magic...",
+            "Cooking up some dankness...",
+            "Pixels in progress...",
+            "Meme vibes incoming...",
+            "Generating the good stuff..."
+        ];
+        const loadingIcons = ['fa-star', 'fa-bolt', 'fa-cog', 'fa-rocket', 'fa-cloud'];
+        const wittyIcons = ['fa-skull', 'fa-poo', 'fa-coffee', 'fa-bomb', 'fa-ghost', 'fa-spider', 'fa-toilet', 'fa-trash'];
+
+        const defaultPresets = [
+            "A confused astronaut on the moon",
+            "A cat wearing sunglasses",
+            "A dancing robot in a disco",
+            "A medieval knight eating pizza",
+            "A penguin sliding on ice"
+        ];
+        const darkHumorPresets = [
+            "A skeleton waiting for Wi-Fi",
+            "A grim reaper at a party",
+            "A ghost ignoring texts",
+            "A vampire at a blood drive",
+            "A zombie job interview"
+        ];
+        const cutePresets = [
+            "A puppy in a tiny hat",
+            "A bunny with a cupcake",
+            "A kitten chasing a laser",
+            "A baby panda sneezing",
+            "A duckling in a puddle"
+        ];
+
+        let currentImages = [];
+        let selectedImage = null;
+        let currentPrompt = '';
+        let wittyMessages = [
+            "Nothing here, loser!",
+            "Canvas dead as my hopes.",
+            "Meme? More like meh-me.",
+            "Empty like your soul, huh?"
+        ];
+
+        function updateButtonStates() {
+            const hasImage = !!selectedImage;
+            document.getElementById('regen-captions-btn').disabled = !hasImage;
+            document.getElementById('download-btn').disabled = !hasImage;
+            document.getElementById('share-btn').disabled = !hasImage;
+            document.getElementById('top-input').disabled = !hasImage;
+            document.getElementById('bottom-input').disabled = !hasImage;
+        }
+
+        function updateText() {
+            if (!selectedImage) return;
+            const topText = document.getElementById('top-input').value || document.getElementById('top-input').placeholder;
+            const bottomText = document.getElementById('bottom-input').value || document.getElementById('bottom-input').placeholder;
+            document.getElementById('top-text').innerText = topText;
+            document.getElementById('bottom-text').innerText = bottomText;
+            const memeContainer = document.getElementById('meme-container');
+            memeContainer.classList.add('updated');
+            setTimeout(() => memeContainer.classList.remove('updated'), 500);
+        }
+
+        function populatePresets(theme = 'default') {
+            const options = document.getElementById('prompt-options');
+            options.innerHTML = '';
+            const presets = theme === 'dark-humor' ? darkHumorPresets : theme === 'cute' ? cutePresets : defaultPresets;
+            presets.forEach(prompt => {
+                const btn = document.createElement('button');
+                btn.innerHTML = `<i class="fas fa-arrow-right"></i> ${prompt}`;
+                btn.onclick = () => {
+                    document.getElementById('custom-prompt').value = prompt; // Fill custom text
+                    generateOptions(prompt);
+                };
+                options.appendChild(btn);
+            });
+        }
+
+        populatePresets();
+        updateButtonStates();
+
+        window.onload = () => {
+            generateOptions(defaultPresets[0]).then(() => {
+                selectImage(currentImages[0], document.querySelector('#options-gallery img'));
+                document.getElementById('top-text').innerText = 'MEME IT';
+                document.getElementById('bottom-text').innerText = 'YOUR WAY';
+                document.getElementById('top-input').value = 'MEME IT';
+                document.getElementById('bottom-input').value = 'YOUR WAY';
+                document.getElementById('custom-prompt').value = defaultPresets[0];
+            });
+        };
+
+        document.getElementById('theme-selector').addEventListener('change', (e) => {
+            populatePresets(e.target.value);
+        });
+
+        document.getElementById('regen-presets').addEventListener('click', async () => {
+            const theme = document.getElementById('theme-selector').value;
+            const regenButton = document.getElementById('regen-presets');
+            regenButton.disabled = true;
+            regenButton.classList.add('loading');
+
+            try {
+                const prompt = `Generate 5 creative, funny ${theme === 'dark-humor' ? 'dark humor' : theme === 'cute' ? 'cute' : 'random'} meme ideas. Each should be a short, vivid description (e.g., "A skateboarding llama in space"). List them as plain text, one per line.`;
+                const response = await fetch(
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt }] }],
+                            generationConfig: { maxOutputTokens: 100, temperature: 1.2 }
+                        })
+                    }
+                );
+                const data = await response.json();
+                const newPresets = data.candidates[0].content.parts[0].text
+                    .split('\n')
+                    .filter(p => p.trim())
+                    .map(p => p.replace(/^\d+\.\s+|\*\*\s+/g, ''))
+                    .slice(0, 5);
+                
+                const presetArray = theme === 'dark-humor' ? darkHumorPresets : theme === 'cute' ? cutePresets : defaultPresets;
+                presetArray.length = 0;
+                presetArray.push(...newPresets);
+                populatePresets(theme);
+            } catch (error) {
+                console.error('Error refreshing presets:', error);
+                const options = document.getElementById('prompt-options');
+                options.innerHTML = '<p>Oops, failed to refresh!</p>';
+            } finally {
+                regenButton.disabled = false;
+                regenButton.classList.remove('loading');
+            }
+        });
+
+        document.getElementById('generate-btn').addEventListener('click', () => {
+            const prompt = document.getElementById('custom-prompt').value || document.getElementById('custom-prompt').placeholder;
+            generateOptions(prompt);
+        });
+
+        document.getElementById('placeholder-generate-btn').addEventListener('click', () => {
+            const prompt = document.getElementById('custom-prompt').value || document.getElementById('custom-prompt').placeholder || defaultPresets[0];
+            generateOptions(prompt);
+        });
+
+        document.getElementById('regen-captions-btn').addEventListener('click', async () => {
+            if (!selectedImage) return;
+            await generateCaptions(currentPrompt || document.getElementById('custom-prompt').value || document.getElementById('custom-prompt').placeholder);
+        });
+
+        document.getElementById('clear-btn').addEventListener('click', async () => {
+            selectedImage = null;
+            currentPrompt = '';
+            const memeImage = document.getElementById('meme-image');
+            const placeholder = document.getElementById('placeholder');
+            const placeholderText = document.getElementById('placeholder-text');
+            const placeholderIcon = document.getElementById('placeholder-icon');
+            memeImage.src = '';
+            memeImage.classList.add('hidden');
+            document.getElementById('top-text').innerText = '';
+            document.getElementById('bottom-text').innerText = '';
+            document.getElementById('top-input').value = '';
+            document.getElementById('bottom-input').value = '';
+            document.getElementById('custom-prompt').value = '';
+            document.getElementById('options-gallery').innerHTML = '<p>Pick an idea to start!</p>';
+            document.getElementById('options-gallery').classList.remove('visible');
+            document.querySelectorAll('#options-gallery img').forEach(img => img.classList.remove('selected'));
+            
+            // Show sassy placeholder with static icon
+            placeholder.style.display = 'flex';
+            placeholderText.innerText = wittyMessages[Math.floor(Math.random() * wittyMessages.length)];
+            const randomIcon = wittyIcons[Math.floor(Math.random() * wittyIcons.length)];
+            placeholderIcon.innerHTML = `<i class="fas ${randomIcon}"></i>`;
+            
+            // Fetch new sassy message
+            try {
+                const response = await fetch(
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: "Generate a short, sassy, dark humor message (max 10 words) for a meme generator's empty canvas." }] }],
+                            generationConfig: { maxOutputTokens: 20, temperature: 1.0 }
+                        })
+                    }
+                );
+                const data = await response.json();
+                const newMessage = data.candidates[0].content.parts[0].text.trim();
+                if (newMessage && !wittyMessages.includes(newMessage)) {
+                    wittyMessages.push(newMessage);
+                }
+            } catch (error) {
+                console.error('Error fetching sassy message:', error);
+            }
+            
+            updateButtonStates();
+        });
+
+        document.getElementById('download-btn').addEventListener('click', () => {
+            if (!selectedImage) return;
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = document.getElementById('meme-image');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            ctx.drawImage(img, 0, 0);
+            ctx.font = 'bold 30px Arial';
+            ctx.fillStyle = document.body.classList.contains('light') ? '#1a1a2e' : '#fff';
+            ctx.textAlign = 'center';
+            ctx.shadowColor = document.body.classList.contains('light') ? '#fff' : '#000';
+            ctx.shadowBlur = 4;
+            ctx.fillText(document.getElementById('top-text').innerText, canvas.width / 2, 40);
+            ctx.fillText(document.getElementById('bottom-text').innerText, canvas.width / 2, canvas.height - 20);
+            const link = document.createElement('a');
+            link.download = 'meme.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+
+        document.getElementById('share-btn').addEventListener('click', () => {
+            if (!selectedImage) return;
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = document.getElementById('meme-image');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            ctx.drawImage(img, 0, 0);
+            ctx.font = 'bold 30px Arial';
+            ctx.fillStyle = document.body.classList.contains('light') ? '#1a1a2e' : '#fff';
+            ctx.textAlign = 'center';
+            ctx.shadowColor = document.body.classList.contains('light') ? '#fff' : '#000';
+            ctx.shadowBlur = 4;
+            ctx.fillText(document.getElementById('top-text').innerText, canvas.width / 2, 40);
+            ctx.fillText(document.getElementById('bottom-text').innerText, canvas.width / 2, canvas.height - 20);
+            canvas.toBlob(blob => {
+                const file = new File([blob], 'meme.png', { type: 'image/png' });
+                if (navigator.share) {
+                    navigator.share({
+                        files: [file],
+                        title: 'Check out my meme!',
+                        text: 'Made with Meme Generator'
+                    }).catch(err => console.error('Share failed:', err));
+                } else {
+                    alert('Sharing not supported. Try downloading and sharing manually!');
+                }
+            });
+        });
+
+        document.getElementById('theme-toggle').addEventListener('click', () => {
+            document.body.classList.toggle('dark');
+            document.body.classList.toggle('light');
+            const toggleIcon = document.getElementById('theme-toggle').querySelector('i');
+            toggleIcon.classList.toggle('fa-moon');
+            toggleIcon.classList.toggle('fa-sun');
+        });
+
+        async function generateOptions(prompt) {
+            if (!prompt) return;
+            currentPrompt = prompt;
+
+            const loadingDiv = document.getElementById('loading');
+            const loadingText = document.getElementById('loading-text');
+            const progressFill = document.getElementById('progress-fill');
+            const gallery = document.getElementById('options-gallery');
+            const memeImage = document.getElementById('meme-image');
+            const topText = document.getElementById('top-text');
+            const bottomText = document.getElementById('bottom-text');
+            const placeholder = document.getElementById('placeholder');
+            loadingText.innerText = loadingMessages[Math.floor(Math.random() * loadingMessages.length)];
+            loadingDiv.style.display = 'flex';
+            memeImage.classList.add('hidden');
+            placeholder.style.display = 'none';
+            topText.style.opacity = '0';
+            bottomText.style.opacity = '0';
+            gallery.innerHTML = '<p>Generating...</p>';
+            gallery.classList.remove('visible');
+
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += 10;
+                progressFill.style.width = `${Math.min(progress, 90)}%`;
+            }, 500);
+
+            const iconInterval = setInterval(() => {
+                const icons = document.querySelectorAll('#loading-icons i');
+                icons.forEach(icon => {
+                    icon.className = `fas ${loadingIcons[Math.floor(Math.random() * loadingIcons.length)]}`;
+                });
+            }, 500);
+
+            try {
+                const seeds = [prompt + 'A', prompt + 'B', prompt + 'C'];
+                const imagePromises = seeds.map(seed => fetchImage(seed));
+                currentImages = await Promise.all(imagePromises);
+
+                gallery.innerHTML = '';
+                currentImages.forEach((url, index) => {
+                    const img = document.createElement('img');
+                    img.src = url;
+                    img.alt = `Option ${index + 1}`;
+                    img.width = 100;
+                    img.onclick = () => selectImage(url, img);
+                    gallery.appendChild(img);
+                });
+                gallery.classList.add('visible');
+                progressFill.style.width = '100%';
+
+                await generateCaptions(prompt);
+                selectImage(currentImages[0], document.querySelector('#options-gallery img')); // Auto-select first thumbnail
+            } catch (error) {
+                console.error('Error generating options:', error);
+                gallery.innerHTML = `<p>Oops, something broke!</p>`;
+                gallery.classList.add('visible');
+            } finally {
+                clearInterval(progressInterval);
+                clearInterval(iconInterval);
+                progressFill.style.width = '0';
+                loadingDiv.classList.add('hidden');
+                setTimeout(() => {
+                    loadingDiv.style.display = 'none';
+                    loadingDiv.classList.remove('hidden');
+                }, 300);
+            }
+        }
+
+        async function fetchImage(prompt) {
+            try {
+                const response = await fetch(
+                    'https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5',
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${HF_API_KEY}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ inputs: prompt })
+                    }
+                );
+                if (!response.ok) throw new Error(`Hugging Face API error: ${response.status}`);
+                const blob = await response.blob();
+                if (!blob || blob.size === 0) throw new Error('Empty image returned');
+                return URL.createObjectURL(blob);
+            } catch (error) {
+                console.error('Image fetch error:', error);
+                throw error;
+            }
+        }
+
+        async function generateCaptions(prompt) {
+            const loadingDiv = document.getElementById('loading');
+            const progressFill = document.getElementById('progress-fill');
+            loadingDiv.style.display = 'flex';
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += 20;
+                progressFill.style.width = `${Math.min(progress, 90)}%`;
+            }, 300);
+
+            const iconInterval = setInterval(() => {
+                const icons = document.querySelectorAll('#loading-icons i');
+                icons.forEach(icon => {
+                    icon.className = `fas ${loadingIcons[Math.floor(Math.random() * loadingIcons.length)]}`;
+                });
+            }, 500);
+
+            try {
+                const response = await fetch(
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: `Generate a wildly creative, funny top and bottom text pair for a meme based on "${prompt}". Avoid repetition, be unpredictable. Return exactly as: "Top: [short text], Bottom: [short text]". No extra words or formatting.` }] }],
+                            generationConfig: { maxOutputTokens: 50, temperature: 1.5 }
+                        })
+                    }
+                );
+                if (!response.ok) throw new Error(`Gemini API error: ${response.status}`);
+                const data = await response.json();
+                const text = data.candidates[0].content.parts[0].text.trim();
+                const [topPart, bottomPart] = text.split(', Bottom: ');
+                if (!topPart || !bottomPart) throw new Error('Invalid caption format');
+                const topText = topPart.replace('Top: ', '').trim();
+                const bottomText = bottomPart.trim();
+                
+                document.getElementById('top-input').value = topText;
+                document.getElementById('bottom-input').value = bottomText;
+                if (selectedImage) {
+                    document.getElementById('top-text').innerText = topText;
+                    document.getElementById('bottom-text').innerText = bottomText;
+                }
+                progressFill.style.width = '100%';
+            } catch (error) {
+                console.error('Caption fetch error:', error);
+                document.getElementById('top-input').value = 'OOPS';
+                document.getElementById('bottom-input').value = 'AI BROKE';
+                if (selectedImage) {
+                    document.getElementById('top-text').innerText = 'OOPS';
+                    document.getElementById('bottom-text').innerText = 'AI BROKE';
+                }
+            } finally {
+                clearInterval(progressInterval);
+                clearInterval(iconInterval);
+                progressFill.style.width = '0';
+                loadingDiv.classList.add('hidden');
+                setTimeout(() => {
+                    loadingDiv.style.display = 'none';
+                    loadingDiv.classList.remove('hidden');
+                }, 300);
+            }
+        }
+
+        function selectImage(url, imgElement) {
+            selectedImage = url;
+            const memeImage = document.getElementById('meme-image');
+            const topText = document.getElementById('top-text');
+            const bottomText = document.getElementById('bottom-text');
+            const placeholder = document.getElementById('placeholder');
+            memeImage.src = url;
+            memeImage.classList.add('hidden');
+            setTimeout(() => {
+                memeImage.classList.remove('hidden');
+            }, 50); // Quick fade
+            placeholder.style.display = 'none';
+            const topTextValue = document.getElementById('top-input').value || document.getElementById('top-input').placeholder;
+            const bottomTextValue = document.getElementById('bottom-input').value || document.getElementById('bottom-input').placeholder;
+            topText.innerText = topTextValue;
+            bottomText.innerText = bottomTextValue;
+            topText.style.opacity = '1';
+            bottomText.style.opacity = '1';
+            document.querySelectorAll('#options-gallery img').forEach(img => img.classList.remove('selected'));
+            imgElement.classList.add('selected');
+            updateButtonStates();
+        }
+    </script>
+</body>
+</html>
